@@ -127,6 +127,7 @@ elif page == "Joueurs":
         ax.spines['right'].set_visible(False)
         # Set y-axis range
         ax.set_ylim(1, 7)
+        plt.xticks(rotation=90)
         st.pyplot(fig)
     else:
         st.write(f"No data available for {selected_name}.")
