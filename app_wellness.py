@@ -33,7 +33,7 @@ if page == "Team":
     
     # Define the full list of players
     all_players = [
-        "Agoro", "Hend", "Raux-Yao", "Moussadek", "Guirrassy", 
+        "Agoro", "Hend", "Raux-Yao", "Moussadek", "Guirassy", 
         "Mbemba", "Ben Brahim", "Santini", "Kodjia", "Mendes", "M'bone", 
         "Mbala", "Chadet", "Diakhaby", "Altikulac", "Duku", "Mahop", 
         "Calvet", "Basque", "Tchato", "Baghdadi", "Renot", "Renaud", 
