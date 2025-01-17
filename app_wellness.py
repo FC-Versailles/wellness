@@ -29,8 +29,17 @@ st.sidebar.title("Choisir")
 page = st.sidebar.radio("", ["Team", "Joueurs"])
 
 if page == "Team":
-    st.header("Etat de l'équipe")
+    st.header("État de l'équipe")
     
+    # Define the full list of players
+    all_players = [
+        "Agoro", "Hend", "Raux-Yao", "Moussadek", "Guirrassy", 
+        "Mbemba", "Ben Brahim", "Santini", "Kodjia", "Mendes", "M'bone", 
+        "Mbala", "Chadet", "Diakhaby", "Altikulac", "Duku", "Mahop", 
+        "Calvet", "Basque", "Tchato", "Baghdadi", "Renot", "Renaud", 
+        "Raux", "Dabana", "Traoré"
+    ]
+
     # Date selection
     date_min = data['Date'].min()
     date_max = data['Date'].max()
@@ -42,6 +51,10 @@ if page == "Team":
 
     # Filter data by the selected date
     filtered_data = data[data['Date'] == pd.Timestamp(selected_date)]
+
+    # Get the list of players who filled the questionnaire
+    players_filled = filtered_data['Nom'].dropna().unique()
+    players_not_filled = list(set(all_players) - set(players_filled))
 
     # Drop unnecessary columns for display
     columns_to_display = ['Nom', 'Sommeil', 'Fatigue', 'Courbature', 'Humeur', 'Douleurs', 
@@ -63,9 +76,18 @@ if page == "Team":
             for index, row in high_scores.iterrows():
                 st.write(f"- {row['Nom']}: Sommeil {row['Sommeil']} - Fatigue {row['Fatigue']} - Courbature {row['Courbature']} - Humeur {row['Humeur']}")
         else:
-            st.write("Aucun joueur pour aujourd'hui.")
+            st.write("Aucun joueur avec des scores élevés pour aujourd'hui.")
     else:
-        st.write(f"Listes des joueurs à suivre pour le {selected_date}.")
+        st.write(f"Aucune donnée disponible pour le {selected_date}.")
+
+    # Display players who did not fill the questionnaire
+    st.write(f"Joueurs n'ayant pas rempli le questionnaire le {selected_date}:")
+    if players_not_filled:
+        for player in sorted(players_not_filled):
+            st.write(f"- {player}")
+    else:
+        st.write("Tous les joueurs ont rempli le questionnaire.")
+
 
 elif page == "Joueurs":
     st.header("Joueur")
