@@ -26,9 +26,9 @@ st.title("Wellness - FC Versailles")
 
 # Sidebar for navigation
 st.sidebar.title("Choisir")
-page = st.sidebar.radio("", ["Team", "Joueurs"])
+page = st.sidebar.radio("", ["Equipe", "Joueurs","Medical"])
 
-if page == "Team":
+if page == "Equipe":
     st.header("État de l'équipe")
     
     # Define the full list of players
@@ -37,7 +37,7 @@ if page == "Team":
         "Mbemba", "Ben Brahim", "Santini", "Kodjia", "Mendes", "M'bone", 
         "Mbala", "Chadet", "Diakhaby", "Altikulac", "Duku", "Mahop", 
         "Calvet", "Basque", "Tchato", "Baghdadi", "Renot", "Renaud", 
-        "Raux", "Dabana", "Traoré"
+        "Raux", "Traoré"
     ]
 
     # Date selection
@@ -57,14 +57,20 @@ if page == "Team":
     players_not_filled = list(set(all_players) - set(players_filled))
 
     # Drop unnecessary columns for display
-    columns_to_display = ['Nom', 'Sommeil', 'Fatigue', 'Courbature', 'Humeur', 'Douleurs', 
-                           'Identifie l\'emplacement de la douleur', 'Intensité de la douleur']
+    columns_to_display = ['Nom', 'Sommeil', 'Fatigue', 'Courbature', 'Humeur']
     filtered_data_display = filtered_data[columns_to_display]
 
     # Display the filtered data
     if not filtered_data_display.empty:
         st.write(f"{selected_date}")
         st.dataframe(filtered_data_display)
+
+        # Calculate averages for the selected date
+        averages = filtered_data.groupby('Nom')[['Sommeil', 'Fatigue', 'Courbature', 'Humeur']].mean()
+        averages.reset_index(inplace=True)
+
+        st.write("### Moyenne des scores")
+        st.dataframe(averages)
 
         # List players with scores above 5 in specific columns
         high_scores = filtered_data[(filtered_data['Sommeil'] > 5) | 
@@ -89,28 +95,62 @@ if page == "Team":
         st.write("Tous les joueurs ont rempli le questionnaire.")
 
 
+
 elif page == "Joueurs":
     st.header("Joueur")
     
-    # Trier les noms par ordre alphabétique
+    # Sort names alphabetically
     sorted_names = sorted(data['Nom'].dropna().unique())
     selected_name = st.sidebar.selectbox("Choisir un nom:", options=sorted_names, index=0)
 
-    # Filtrer les données par le nom sélectionné
+    # Filter data for the selected player
     data_filtered_by_name = data[data['Nom'] == selected_name]
-    
-    # Formater la colonne "Date" pour l'affichage
-    data_filtered_by_name['Date'] = data_filtered_by_name['Date'].dt.strftime('%d-%m-%y')
 
-    # Sélectionner les colonnes à afficher
-    columns_to_display = ['Date', 'Sommeil', 'Fatigue', 'Courbature', 'Humeur', 'Douleurs', 
-                           'Identifie l\'emplacement de la douleur', 'Intensité de la douleur']
-    filtered_data_display = data_filtered_by_name[columns_to_display]
+    # Ensure the Date column is sorted and retains datetime format
+    data_filtered_by_name = data_filtered_by_name.sort_values(by='Date')
+    data_filtered_by_name['Date'] = pd.to_datetime(data_filtered_by_name['Date'], errors='coerce')
 
-    # Afficher les données filtrées
-    if not filtered_data_display.empty:
-        st.write(f"{selected_name}:")
-        st.dataframe(filtered_data_display)
+    # Calculate metrics
+    if not data_filtered_by_name.empty:
+        # Value of the most recent date
+        latest_date = data_filtered_by_name['Date'].max()
+        latest_values = data_filtered_by_name[data_filtered_by_name['Date'] == latest_date]
+
+        # Mean of all available data
+        mean_values = data_filtered_by_name[['Sommeil', 'Fatigue', 'Courbature', 'Humeur']].mean()
+
+        # Mean of the last 3 days
+        last_three_days = data_filtered_by_name.tail(3)
+        last_three_mean = last_three_days[['Sommeil', 'Fatigue', 'Courbature', 'Humeur']].mean()
+
+        # Create a summary table
+        summary_table = pd.DataFrame({
+            'Metric': ['Valeur du jour', 'Moyenne', 'Moyenne des 3 derniers jours'],
+            'Sommeil': [
+                latest_values['Sommeil'].values[0] if not latest_values.empty else "N/A",
+                mean_values['Sommeil'],
+                last_three_mean['Sommeil']
+            ],
+            'Fatigue': [
+                latest_values['Fatigue'].values[0] if not latest_values.empty else "N/A",
+                mean_values['Fatigue'],
+                last_three_mean['Fatigue']
+            ],
+            'Courbature': [
+                latest_values['Courbature'].values[0] if not latest_values.empty else "N/A",
+                mean_values['Courbature'],
+                last_three_mean['Courbature']
+            ],
+            'Humeur': [
+                latest_values['Humeur'].values[0] if not latest_values.empty else "N/A",
+                mean_values['Humeur'],
+                last_three_mean['Humeur']
+            ]
+        })
+
+        # Display the summary table
+        st.write(f"### Résumé pour {selected_name}")
+        st.table(summary_table)
 
         # Graphique interactif
         st.write("### Métriques de Santé")
@@ -131,4 +171,48 @@ elif page == "Joueurs":
         st.pyplot(fig)
     else:
         st.write(f"Aucune donnée disponible pour {selected_name}.")
+        
+        
+        
+if page == "Medical":
+    st.header("Analyse des Douleurs")
+
+    # Date selection
+    date_min = data['Date'].min()
+    date_max = data['Date'].max()
+    selected_date = st.sidebar.date_input(
+        "Choisir une date:", 
+        min_value=date_min, 
+        max_value=date_max
+    )
+
+    # Filter data by the selected date
+    filtered_data = data[data['Date'] == pd.Timestamp(selected_date)]
+
+    # Further filter for players who reported "Oui" for "Douleurs"
+    players_with_pain = filtered_data[filtered_data['Douleurs'] == "Oui"]
+
+    # Display an overview
+    if not players_with_pain.empty:
+        st.write(f"### Joueurs ayant signalé des douleurs le {selected_date.strftime('%d-%m-%Y')}")
+        
+        # Display a table of players and details
+        columns_to_display = [
+            'Nom', 'Identifie l\'emplacement de la douleur', 'Intensité de la douleur'
+        ]
+        st.dataframe(players_with_pain[columns_to_display])
+
+        # Display pain intensity distribution
+        st.write("### Distribution de l'intensité des douleurs")
+        fig, ax = plt.subplots()
+        ax.hist(players_with_pain['Intensité de la douleur'].dropna(), bins=range(1, 11), edgecolor='black')
+        ax.set_title("Distribution de l'intensité des douleurs")
+        ax.set_xlabel("Intensité de la douleur")
+        ax.set_ylabel("Nombre de joueurs")
+        ax.grid(True)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        st.pyplot(fig)
+    else:
+        st.write(f"Aucun joueur n'a signalé de douleurs le {selected_date.strftime('%d-%m-%Y')}.")
 
