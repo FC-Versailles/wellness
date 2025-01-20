@@ -33,7 +33,7 @@ if page == "Team":
     
     # Define the full list of players
     all_players = [
-        "Agoro", "Hend", "Raux-Yao", "Moussadek", "Guirassy", 
+        "Hend", "Raux-Yao", "Moussadek", "Guirassy","Odzoumo", 
         "Mbemba", "Ben Brahim", "Santini", "Kodjia", "Mendes", "M'bone", 
         "Mbala", "Chadet", "Diakhaby", "Altikulac", "Duku", "Mahop", 
         "Calvet", "Basque", "Tchato", "Baghdadi", "Renot", "Renaud", 
@@ -63,7 +63,7 @@ if page == "Team":
 
     # Display the filtered data
     if not filtered_data_display.empty:
-        st.write(f"Data for {selected_date}:")
+        st.write(f"{selected_date}")
         st.dataframe(filtered_data_display)
 
         # List players with scores above 5 in specific columns
@@ -92,27 +92,27 @@ if page == "Team":
 elif page == "Joueurs":
     st.header("Joueur")
     
-    # Dropdown to select "Nom"
-    names = data['Nom'].dropna().unique()
-    selected_name = st.sidebar.selectbox("Choisir un nom:", options=names, index=0)
+    # Trier les noms par ordre alphabétique
+    sorted_names = sorted(data['Nom'].dropna().unique())
+    selected_name = st.sidebar.selectbox("Choisir un nom:", options=sorted_names, index=0)
 
-    # Filter data by the selected name
+    # Filtrer les données par le nom sélectionné
     data_filtered_by_name = data[data['Nom'] == selected_name]
     
-    # Format the "Date" column as dd-mm-yy for display
+    # Formater la colonne "Date" pour l'affichage
     data_filtered_by_name['Date'] = data_filtered_by_name['Date'].dt.strftime('%d-%m-%y')
 
-    # Drop unnecessary columns for display
+    # Sélectionner les colonnes à afficher
     columns_to_display = ['Date', 'Sommeil', 'Fatigue', 'Courbature', 'Humeur', 'Douleurs', 
                            'Identifie l\'emplacement de la douleur', 'Intensité de la douleur']
     filtered_data_display = data_filtered_by_name[columns_to_display]
 
-    # Display the filtered data
+    # Afficher les données filtrées
     if not filtered_data_display.empty:
         st.write(f"{selected_name}:")
         st.dataframe(filtered_data_display)
 
-        # Interactive plot
+        # Graphique interactif
         st.write("### Métriques de Santé")
         variable = st.selectbox("Choisir la variable:", ["Sommeil", "Fatigue", "Courbature", "Humeur"])
 
@@ -122,12 +122,13 @@ elif page == "Joueurs":
         ax.set_xlabel("Date")
         ax.set_ylabel(variable)
         ax.grid(True)
-        # Remove top and right axes
+        # Supprimer les axes supérieurs et droits
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
-        # Set y-axis range
+        # Définir la plage de l'axe Y
         ax.set_ylim(1, 7)
-        plt.xticks(rotation=90)
+        plt.xticks(rotation=45)
         st.pyplot(fig)
     else:
-        st.write(f"No data available for {selected_name}.")
+        st.write(f"Aucune donnée disponible pour {selected_name}.")
+
