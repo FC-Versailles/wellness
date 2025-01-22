@@ -65,9 +65,15 @@ def fetch_google_sheet(spreadsheet_id, range_name):
 # Streamlit app
 st.title("FC Versailles - Santé & Wellness")
 
+# Add a button to refresh the data
+if st.button("Actualiser les données"):
+    st.cache_data.clear()  # Clear the cache to fetch new data
+    st.success("Data refreshed successfully!")
+
+
 # Fetch Google Sheet data
 @st.cache_data
-def load_data():
+def load_data(ttl=60):
     return fetch_google_sheet(SPREADSHEET_ID, RANGE_NAME)
 
 
