@@ -63,7 +63,7 @@ def fetch_google_sheet(spreadsheet_id, range_name):
 
 
 # Streamlit app
-st.title("Wellness - FC Versailles")
+st.title("FC Versailles - Santé & Wellness")
 
 # Fetch Google Sheet data
 @st.cache_data
@@ -80,11 +80,14 @@ if "Date" in data.columns:
     
     
 # Sidebar for navigation
-st.sidebar.title("Choisir")
-page = st.sidebar.radio("", ["Equipe", "Joueurs","Medical"])
+st.sidebar.title("Wellness")
+page = st.sidebar.radio("", ["Equipe", "Joueurs","Post-entrainement","Medical"])
 
 if page == "Equipe":
     st.header("État de l'équipe")
+    
+    # Filter data for "Quand ?" == "pre-entrainement"
+    pre_training_data = data[data['Quand ?'] == "pre-entrainement"]
     
     # Define the full list of players
     all_players = [
@@ -96,8 +99,8 @@ if page == "Equipe":
     ]
 
     # Date selection
-    date_min = data['Date'].min()
-    date_max = data['Date'].max()
+    date_min = pre_training_data['Date'].min()
+    date_max = pre_training_data['Date'].max()
     selected_date = st.sidebar.date_input(
         "Choisir la date:", 
         min_value=date_min, 
@@ -105,7 +108,7 @@ if page == "Equipe":
     )
 
     # Filter data by the selected date
-    filtered_data = data[data['Date'] == pd.Timestamp(selected_date)]
+    filtered_data = pre_training_data[pre_training_data['Date'] == pd.Timestamp(selected_date)]
 
     # Get the list of players who filled the questionnaire
     players_filled = filtered_data['Nom'].dropna().unique()
@@ -129,12 +132,8 @@ if page == "Equipe":
         # Drop rows with NaN in the relevant columns
         filtered_data = filtered_data.dropna(subset=columns_to_convert)
 
-            # Calculate averages
+        # Calculate averages
         averages = filtered_data.groupby('Nom')[columns_to_convert].mean().reset_index()
-
-
-        st.write("### Moyenne des scores")
-        st.dataframe(averages)
 
         # List players with scores above 5 in specific columns
         high_scores = filtered_data[(filtered_data['Sommeil'] > 5) | 
@@ -253,6 +252,50 @@ elif page == "Joueurs":
     else:
         st.write(f"Aucune donnée disponible pour {selected_name}.")
         
+# Add a new page for "Post-entrainement"
+elif page == "Post-entrainement":
+    st.header("Analyse Post-entrainement")
+
+    # Filter data for "Quand ?" == "post-entrainement"
+    post_training_data = data[data['Quand ?'] == "post-entrainement"]
+
+    # Date selection
+    date_min = post_training_data['Date'].min()
+    date_max = post_training_data['Date'].max()
+    selected_date = st.sidebar.date_input(
+        "Choisir une date:", 
+        min_value=date_min, 
+        max_value=date_max
+    )
+
+    # Filter data by the selected date
+    filtered_data = post_training_data[post_training_data['Date'] == pd.Timestamp(selected_date)]
+
+    # Columns to display
+    columns_to_display = ['Nom', 'Humeur post-entrainement', 'Plaisir entrainement']
+
+    if not filtered_data.empty:
+        # Drop unnecessary columns for display
+        filtered_data_display = filtered_data[columns_to_display]
+
+        # Display the table
+        st.write(f"### Données Post-entrainement pour le {selected_date.strftime('%d-%m-%Y')}")
+        st.dataframe(filtered_data_display)
+
+        # Convert columns to numeric if necessary
+        for col in ['Humeur post-entrainement', 'Plaisir entrainement']:
+            filtered_data[col] = pd.to_numeric(filtered_data[col], errors='coerce')
+
+        # Calculate averages
+        averages = filtered_data[['Humeur post-entrainement', 'Plaisir entrainement']].mean()
+
+        # Display averages
+        st.write("### Moyennes des scores")
+        st.write(averages)
+
+    else:
+        st.write(f"Aucune donnée disponible pour le {selected_date.strftime('%d-%m-%Y')}.")        
+        
         
         
 if page == "Medical":
@@ -296,9 +339,3 @@ if page == "Medical":
         st.pyplot(fig)
     else:
         st.write(f"Aucun joueur n'a signalé de douleurs le {selected_date.strftime('%d-%m-%Y')}.")
-
-
-
-
-
-
