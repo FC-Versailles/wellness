@@ -1,29 +1,84 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Mon Jan 13 10:36:04 2025
+Created on Wed Jan 22 09:32:55 2025
 
 @author: fcvmathieu
 """
 
 import streamlit as st
 import pandas as pd
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from google.auth.transport.requests import Request
+import os
+import pickle
+import ast
 import matplotlib.pyplot as plt
 
 
-# Load the dataset
-file_path = 'df.csv'  # Ensure this file is in the same directory or provide the correct path
-data = pd.read_csv(file_path)
+# Constants for Google Sheets
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
+TOKEN_FILE = 'token.pickle'
+SPREADSHEET_ID = '1tiCkE28kdrP4BOyUHCSo83WYRvwLdlALRuPiv-cDsHU'  # Replace with your actual Spreadsheet ID
+RANGE_NAME = 'Feuille 1'
 
-# Convert the "Date" column to datetime format for easier filtering
-data['Date'] = pd.to_datetime(data['Date'], errors='coerce')
+# Function to get Google Sheets credentials
+def get_credentials():
+    creds = None
+    if os.path.exists(TOKEN_FILE):
+        with open(TOKEN_FILE, 'rb') as token:
+            creds = pickle.load(token)
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'client_secret.json', SCOPES
+            )
+            creds = flow.run_local_server(port=0)
+        with open(TOKEN_FILE, 'wb') as token:
+            pickle.dump(creds, token)
+    return creds
 
-# Retain the "Date" column temporarily for filtering
-data_filtered = data[['Date'] + list(data.columns[4:])]
+# Function to fetch data from Google Sheet
+def fetch_google_sheet(spreadsheet_id, range_name):
+    creds = get_credentials()
+    service = build('sheets', 'v4', credentials=creds)
+    sheet = service.spreadsheets()
+    result = sheet.values().get(spreadsheetId=spreadsheet_id, range=range_name).execute()
+    values = result.get('values', [])
+    if not values:
+        st.error("No data found in the specified range.")
+        return pd.DataFrame()
+    header = values[0]
+    data = values[1:]
+    max_columns = len(header)
+    adjusted_data = [
+        row + [None] * (max_columns - len(row)) if len(row) < max_columns else row[:max_columns]
+        for row in data
+    ]
+    return pd.DataFrame(adjusted_data, columns=header)
+
+
 
 # Streamlit app
 st.title("Wellness - FC Versailles")
 
+# Fetch Google Sheet data
+@st.cache_data
+def load_data():
+    return fetch_google_sheet(SPREADSHEET_ID, RANGE_NAME)
+
+
+data = load_data()
+
+
+# Ensure the "Date" column is in datetime format
+if "Date" in data.columns:
+    data["Date"] = pd.to_datetime(data["Date"], errors="coerce")
+    
+    
 # Sidebar for navigation
 st.sidebar.title("Choisir")
 page = st.sidebar.radio("", ["Equipe", "Joueurs","Medical"])
@@ -65,9 +120,18 @@ if page == "Equipe":
         st.write(f"{selected_date}")
         st.dataframe(filtered_data_display)
 
-        # Calculate averages for the selected date
-        averages = filtered_data.groupby('Nom')[['Sommeil', 'Fatigue', 'Courbature', 'Humeur']].mean()
-        averages.reset_index(inplace=True)
+        # Convert the columns to numeric
+        columns_to_convert = ['Sommeil', 'Fatigue', 'Courbature', 'Humeur']
+
+        for col in columns_to_convert:
+            filtered_data[col] = pd.to_numeric(filtered_data[col], errors='coerce')
+
+        # Drop rows with NaN in the relevant columns
+        filtered_data = filtered_data.dropna(subset=columns_to_convert)
+
+            # Calculate averages
+        averages = filtered_data.groupby('Nom')[columns_to_convert].mean().reset_index()
+
 
         st.write("### Moyenne des scores")
         st.dataframe(averages)
@@ -105,10 +169,27 @@ elif page == "Joueurs":
 
     # Filter data for the selected player
     data_filtered_by_name = data[data['Nom'] == selected_name]
+    
+    def extract_first_numeric(value):
+        try:
+            value = ast.literal_eval(value)
+            if isinstance(value, list) and value:
+                return float(value[0])
+            return float(value)
+        except (ValueError, SyntaxError, TypeError):
+            return float('nan')
 
-    # Ensure the Date column is sorted and retains datetime format
-    data_filtered_by_name = data_filtered_by_name.sort_values(by='Date')
-    data_filtered_by_name['Date'] = pd.to_datetime(data_filtered_by_name['Date'], errors='coerce')
+    # Convert problematic columns
+    for col in ['Sommeil', 'Fatigue', 'Courbature', 'Humeur']:
+        data_filtered_by_name[col] = data_filtered_by_name[col].apply(extract_first_numeric)
+
+    # Drop rows with NaN
+    data_filtered_by_name = data_filtered_by_name.dropna(subset=['Sommeil', 'Fatigue', 'Courbature', 'Humeur'])
+
+    # Calculate means
+    mean_values = data_filtered_by_name[['Sommeil', 'Fatigue', 'Courbature', 'Humeur']].mean()
+
+
 
     # Calculate metrics
     if not data_filtered_by_name.empty:
@@ -215,4 +296,9 @@ if page == "Medical":
         st.pyplot(fig)
     else:
         st.write(f"Aucun joueur n'a signalé de douleurs le {selected_date.strftime('%d-%m-%Y')}.")
+
+
+
+
+
 
