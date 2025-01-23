@@ -15,6 +15,8 @@ import os
 import pickle
 import ast
 import matplotlib.pyplot as plt
+import pandas as pd
+from matplotlib.colors import LinearSegmentedColormap
 
 
 # Constants for Google Sheets
@@ -60,6 +62,18 @@ def fetch_google_sheet(spreadsheet_id, range_name):
     ]
     return pd.DataFrame(adjusted_data, columns=header)
 
+# Define the gradient function
+def color_gradient(value):
+    colors = ["green", "yellow", "orange", "red"]
+    cmap = LinearSegmentedColormap.from_list("smooth_gradient", colors)
+
+    # Handle NaN values by assigning a default gradient (e.g., green)
+    if pd.isna(value):
+        value = 1
+
+    # Normalize the value to fit between 0 and 1 for the gradient
+    norm_value = (value - 1) / (7 - 1)
+    return f"background-color: rgba({','.join(map(str, [int(c * 255) for c in cmap(norm_value)[:3]]))}, 0.6)"
 
 
 # Streamlit app
@@ -78,6 +92,15 @@ def load_data(ttl=60):
 
 
 data = load_data()
+
+# Rename columns as requested
+data = data.rename(columns={
+    'Humeur post-entrainement': 'Humeur-Post',
+    'Plaisir entrainement': 'Plaisir-Post',
+    'RPE': 'RPE'
+})
+
+
 
 
 # Ensure the "Date" column is in datetime format
@@ -278,31 +301,38 @@ elif page == "Post-entrainement":
     filtered_data = post_training_data[post_training_data['Date'] == pd.Timestamp(selected_date)]
 
     # Columns to display
-    columns_to_display = ['Nom', 'Humeur post-entrainement', 'Plaisir entrainement']
+    columns_to_display = ['Nom', 'Humeur-Post', 'Plaisir-Post', 'RPE']
 
     if not filtered_data.empty:
+        # Convert columns to numeric if necessary and cast to integers
+        for col in ['Humeur-Post', 'Plaisir-Post', 'RPE']:
+            filtered_data[col] = pd.to_numeric(filtered_data[col], errors='coerce').fillna(0).astype(int)
+
         # Drop unnecessary columns for display
         filtered_data_display = filtered_data[columns_to_display]
 
-        # Display the table
-        st.write(f"### Données Post-entrainement pour le {selected_date.strftime('%d-%m-%Y')}")
-        st.dataframe(filtered_data_display)
+        # Apply color gradient to numeric columns
+        def apply_gradient(df):
+            return df.style.applymap(color_gradient, subset=['Humeur-Post', 'Plaisir-Post', 'RPE'])
 
-        # Convert columns to numeric if necessary
-        for col in ['Humeur post-entrainement', 'Plaisir entrainement']:
-            filtered_data[col] = pd.to_numeric(filtered_data[col], errors='coerce')
+        # Display the table with gradients applied
+        st.write(f"#### {selected_date.strftime('%d-%m-%Y')}")
+        st.dataframe(apply_gradient(filtered_data_display), use_container_width=True)
 
-        # Calculate averages
-        averages = filtered_data[['Humeur post-entrainement', 'Plaisir entrainement']].mean()
+         # Calculate averages
+        averages = filtered_data[['Humeur-Post', 'Plaisir-Post', 'RPE']].mean().round(0).astype(int)
 
-        # Display averages
-        st.write("### Moyennes des scores")
-        st.write(averages)
+        # Convert averages to DataFrame with column names "Métrique" and "Moyenne"
+        averages_df = pd.DataFrame({"Métrique": averages.index, "Moyenne": averages.values})
+
+        # Display averages as "Score moyen du jour"
+        st.write("#### Score moyen du jour")
+        st.dataframe(averages_df, use_container_width=True)
 
     else:
-        st.write(f"Aucune donnée disponible pour le {selected_date.strftime('%d-%m-%Y')}.")        
-        
-        
+        st.write(f"Aucune donnée disponible pour le {selected_date.strftime('%d-%m-%Y')}.")
+
+
         
 if page == "Medical":
     st.header("Analyse des Douleurs")
