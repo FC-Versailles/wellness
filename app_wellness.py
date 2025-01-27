@@ -154,7 +154,7 @@ if page == "Pre-entrainement":
 
     # Display the filtered data with gradient
     if not filtered_data_display.empty:
-        st.write(f"### {selected_date}")
+        st.write(f"#### {selected_date.strftime('%d-%m-%Y')}")
 
         # Apply color gradient
         def apply_gradient(df):
