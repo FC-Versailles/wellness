@@ -110,12 +110,12 @@ if "Date" in data.columns:
     
 # Sidebar for navigation
 st.sidebar.title("Wellness")
-page = st.sidebar.radio("", ["Equipe", "Joueurs","Post-entrainement","Medical"])
+page = st.sidebar.radio("", ["Pre-entrainement","Post-entrainement","Joueurs","Medical"])
 
-if page == "Equipe":
+if page == "Pre-entrainement":
     st.header("État de l'équipe")
     
-    # Filter data for "Quand ?" == "pre-entrainement"
+   # Filter data for "Quand ?" == "pre-entrainement"
     pre_training_data = data[data['Quand ?'] == "pre-entrainement"]
     
     # Define the full list of players
@@ -139,38 +139,39 @@ if page == "Equipe":
     # Filter data by the selected date
     filtered_data = pre_training_data[pre_training_data['Date'] == pd.Timestamp(selected_date)]
 
-    # Get the list of players who filled the questionnaire
+    # Convert relevant columns to numeric to avoid TypeError
+    columns_to_convert = ['Sommeil', 'Fatigue', 'Courbature', 'Humeur']
+    for col in columns_to_convert:
+        filtered_data[col] = pd.to_numeric(filtered_data[col], errors='coerce')
+        
+   # Get the list of players who filled the questionnaire
     players_filled = filtered_data['Nom'].dropna().unique()
-    players_not_filled = list(set(all_players) - set(players_filled))
+    players_not_filled = list(set(all_players) - set(players_filled))     
 
     # Drop unnecessary columns for display
     columns_to_display = ['Nom', 'Sommeil', 'Fatigue', 'Courbature', 'Humeur']
     filtered_data_display = filtered_data[columns_to_display]
 
-    # Display the filtered data
+    # Display the filtered data with gradient
     if not filtered_data_display.empty:
-        st.write(f"{selected_date}")
-        st.dataframe(filtered_data_display)
+        st.write(f"### {selected_date}")
 
-        # Convert the columns to numeric
-        columns_to_convert = ['Sommeil', 'Fatigue', 'Courbature', 'Humeur']
-
-        for col in columns_to_convert:
-            filtered_data[col] = pd.to_numeric(filtered_data[col], errors='coerce')
-
-        # Drop rows with NaN in the relevant columns
-        filtered_data = filtered_data.dropna(subset=columns_to_convert)
+        # Apply color gradient
+        def apply_gradient(df):
+            return df.style.applymap(color_gradient, subset=['Sommeil', 'Fatigue', 'Courbature', 'Humeur'])
+        
+        st.dataframe(apply_gradient(filtered_data_display), use_container_width=True)
 
         # Calculate averages
         averages = filtered_data.groupby('Nom')[columns_to_convert].mean().reset_index()
 
-        # List players with scores above 5 in specific columns
+        # Display players with high scores
         high_scores = filtered_data[(filtered_data['Sommeil'] > 5) | 
                                      (filtered_data['Fatigue'] > 5) | 
                                      (filtered_data['Courbature'] > 5) | 
                                      (filtered_data['Humeur'] > 5)]
         if not high_scores.empty:
-            st.write("Joueurs avec des scores supérieurs à 5:")
+            st.write("### Joueurs avec des scores supérieurs à 5:")
             for index, row in high_scores.iterrows():
                 st.write(f"- {row['Nom']}: Sommeil {row['Sommeil']} - Fatigue {row['Fatigue']} - Courbature {row['Courbature']} - Humeur {row['Humeur']}")
         else:
@@ -179,13 +180,80 @@ if page == "Equipe":
         st.write(f"Aucune donnée disponible pour le {selected_date}.")
 
     # Display players who did not fill the questionnaire
-    st.write(f"Joueurs n'ayant pas rempli le questionnaire le {selected_date}:")
+    st.write("Joueurs n'ayant pas rempli le questionnaire:")
     if players_not_filled:
         for player in sorted(players_not_filled):
             st.write(f"- {player}")
     else:
         st.write("Tous les joueurs ont rempli le questionnaire.")
 
+elif page == "Post-entrainement":
+    st.header("État de l'équipe")
+
+    # Filter data for "Quand ?" == "post-entrainement"
+    post_training_data = data[data['Quand ?'] == "post-entrainement"]
+
+    # Date selection
+    date_min = post_training_data['Date'].min()
+    date_max = post_training_data['Date'].max()
+    selected_date = st.sidebar.date_input(
+        "Choisir une date:", 
+        min_value=date_min, 
+        max_value=date_max
+    )
+
+    # Filter data by the selected date
+    filtered_data = post_training_data[post_training_data['Date'] == pd.Timestamp(selected_date)]
+
+    # Columns to display
+    columns_to_display = ['Nom', 'Humeur-Post', 'Plaisir-Post', 'RPE']
+
+    if not filtered_data.empty:
+        # Convert columns to numeric if necessary and cast to integers
+        for col in ['Humeur-Post', 'Plaisir-Post', 'RPE']:
+            filtered_data[col] = pd.to_numeric(filtered_data[col], errors='coerce').fillna(0).astype(int)
+
+        # Drop unnecessary columns for display
+        filtered_data_display = filtered_data[columns_to_display]
+
+        # Apply color gradient to numeric columns
+        def apply_gradient(df):
+            return df.style.applymap(color_gradient, subset=['Humeur-Post', 'Plaisir-Post', 'RPE'])
+
+        # Display the table with gradients applied
+        st.write(f"#### {selected_date.strftime('%d-%m-%Y')}")
+        st.dataframe(apply_gradient(filtered_data_display), use_container_width=True)
+
+        # Calculate averages
+        averages = filtered_data[['Humeur-Post', 'Plaisir-Post', 'RPE']].mean().round(0).astype(int)
+
+        # Convert averages to DataFrame with column names "Métrique" and "Moyenne"
+        averages_df = pd.DataFrame({"Métrique": averages.index, "Moyenne": averages.values})
+
+        # Display averages as "Score moyen du jour"
+        st.write("#### Score moyen du jour")
+        st.dataframe(averages_df, use_container_width=True)
+
+        # Check for players who didn't fill the form
+        all_players = [
+            "Hend", "Raux-Yao", "Moussadek", "Guirassy","Odzoumo", 
+            "Mbemba", "Ben Brahim", "Santini", "Kodjia", "Mendes", "M'bone", 
+            "Chadet", "Diakhaby", "Altikulac", "Duku", "Mahop", 
+            "Calvet", "Basque", "Tchato", "Baghdadi", "Renot", "Renaud", 
+            "Raux", "Traoré"
+        ]
+
+        players_filled = filtered_data['Nom'].dropna().unique()
+        players_not_filled = list(set(all_players) - set(players_filled))
+
+        st.write("Joueurs n'ayant pas rempli le questionnaire:")
+        if players_not_filled:
+            for player in sorted(players_not_filled):
+                st.write(f"- {player}")
+        else:
+            st.write("Tous les joueurs ont rempli le questionnaire.")
+    else:
+        st.write(f"Aucune donnée disponible pour le {selected_date.strftime('%d-%m-%Y')}.")
 
 
 elif page == "Joueurs":
@@ -216,7 +284,6 @@ elif page == "Joueurs":
 
     # Calculate means
     mean_values = data_filtered_by_name[['Sommeil', 'Fatigue', 'Courbature', 'Humeur']].mean()
-
 
 
     # Calculate metrics
@@ -281,61 +348,11 @@ elif page == "Joueurs":
     else:
         st.write(f"Aucune donnée disponible pour {selected_name}.")
         
-# Add a new page for "Post-entrainement"
-elif page == "Post-entrainement":
-    st.header("Analyse Post-entrainement")
-
-    # Filter data for "Quand ?" == "post-entrainement"
-    post_training_data = data[data['Quand ?'] == "post-entrainement"]
-
-    # Date selection
-    date_min = post_training_data['Date'].min()
-    date_max = post_training_data['Date'].max()
-    selected_date = st.sidebar.date_input(
-        "Choisir une date:", 
-        min_value=date_min, 
-        max_value=date_max
-    )
-
-    # Filter data by the selected date
-    filtered_data = post_training_data[post_training_data['Date'] == pd.Timestamp(selected_date)]
-
-    # Columns to display
-    columns_to_display = ['Nom', 'Humeur-Post', 'Plaisir-Post', 'RPE']
-
-    if not filtered_data.empty:
-        # Convert columns to numeric if necessary and cast to integers
-        for col in ['Humeur-Post', 'Plaisir-Post', 'RPE']:
-            filtered_data[col] = pd.to_numeric(filtered_data[col], errors='coerce').fillna(0).astype(int)
-
-        # Drop unnecessary columns for display
-        filtered_data_display = filtered_data[columns_to_display]
-
-        # Apply color gradient to numeric columns
-        def apply_gradient(df):
-            return df.style.applymap(color_gradient, subset=['Humeur-Post', 'Plaisir-Post', 'RPE'])
-
-        # Display the table with gradients applied
-        st.write(f"#### {selected_date.strftime('%d-%m-%Y')}")
-        st.dataframe(apply_gradient(filtered_data_display), use_container_width=True)
-
-         # Calculate averages
-        averages = filtered_data[['Humeur-Post', 'Plaisir-Post', 'RPE']].mean().round(0).astype(int)
-
-        # Convert averages to DataFrame with column names "Métrique" and "Moyenne"
-        averages_df = pd.DataFrame({"Métrique": averages.index, "Moyenne": averages.values})
-
-        # Display averages as "Score moyen du jour"
-        st.write("#### Score moyen du jour")
-        st.dataframe(averages_df, use_container_width=True)
-
-    else:
-        st.write(f"Aucune donnée disponible pour le {selected_date.strftime('%d-%m-%Y')}.")
 
 
         
 if page == "Medical":
-    st.header("Analyse des Douleurs")
+    st.header("État de l'équipe")
 
     # Date selection
     date_min = data['Date'].min()
@@ -354,7 +371,7 @@ if page == "Medical":
 
     # Display an overview
     if not players_with_pain.empty:
-        st.write(f"### Joueurs ayant signalé des douleurs le {selected_date.strftime('%d-%m-%Y')}")
+        st.write(f"### {selected_date.strftime('%d-%m-%Y')}")
         
         # Display a table of players and details
         columns_to_display = [
@@ -362,16 +379,5 @@ if page == "Medical":
         ]
         st.dataframe(players_with_pain[columns_to_display])
 
-        # Display pain intensity distribution
-        st.write("### Distribution de l'intensité des douleurs")
-        fig, ax = plt.subplots()
-        ax.hist(players_with_pain['Intensité de la douleur'].dropna(), bins=range(1, 11), edgecolor='black')
-        ax.set_title("Distribution de l'intensité des douleurs")
-        ax.set_xlabel("Intensité de la douleur")
-        ax.set_ylabel("Nombre de joueurs")
-        ax.grid(True)
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        st.pyplot(fig)
     else:
         st.write(f"Aucun joueur n'a signalé de douleurs le {selected_date.strftime('%d-%m-%Y')}.")
