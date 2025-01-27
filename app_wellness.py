@@ -122,7 +122,7 @@ if page == "Equipe":
     all_players = [
         "Hend", "Raux-Yao", "Moussadek", "Guirassy","Odzoumo", 
         "Mbemba", "Ben Brahim", "Santini", "Kodjia", "Mendes", "M'bone", 
-        "Mbala", "Chadet", "Diakhaby", "Altikulac", "Duku", "Mahop", 
+        "Chadet", "Diakhaby", "Altikulac", "Duku", "Mahop", 
         "Calvet", "Basque", "Tchato", "Baghdadi", "Renot", "Renaud", 
         "Raux", "Traoré"
     ]
