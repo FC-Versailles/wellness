@@ -236,7 +236,7 @@ elif page == "Post-entrainement":
 
         # Check for players who didn't fill the form
         all_players = [
-            "Hend", "Raux-Yao", "Moussadek", "Guirassy","Odzoumo", 
+            "Hend", "Raux-Yao", "Moussadek", "Guirassy","El hriti","Odzoumo", 
             "Mbemba", "Ben Brahim", "Santini", "Kodjia", "Mendes", "M'bone", 
             "Chadet", "Diakhaby", "Altikulac", "Duku", "Mahop", 
             "Calvet", "Basque", "Tchato", "Baghdadi", "Renot", "Renaud", 
