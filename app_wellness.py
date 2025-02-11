@@ -124,7 +124,7 @@ if page == "Pre-entrainement":
         "Mbemba", "Ben Brahim", "Santini", "Kodjia", "Mendes", "M'bone", 
         "Chadet", "Diakhaby", "Altikulac", "Duku", "Mahop", 
         "Calvet", "Basque", "Tchato", "Baghdadi", "Renot", "Renaud", 
-        "Raux", "Traoré"
+        "Raux", "Traoré","Koffi"
     ]
 
     # Date selection
@@ -240,7 +240,7 @@ elif page == "Post-entrainement":
             "Mbemba", "Ben Brahim", "Santini", "Kodjia", "Mendes", "M'bone", 
             "Chadet", "Diakhaby", "Altikulac", "Duku", "Mahop", 
             "Calvet", "Basque", "Tchato", "Baghdadi", "Renot", "Renaud", 
-            "Raux", "Traoré"
+            "Raux", "Traoré","Koffi"
         ]
 
         players_filled = filtered_data['Nom'].dropna().unique()
