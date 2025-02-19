@@ -17,6 +17,7 @@ import ast
 import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib.colors import LinearSegmentedColormap
+import plotly.express as px
 
 
 # Constants for Google Sheets
@@ -254,6 +255,72 @@ elif page == "Post-entrainement":
             st.write("Tous les joueurs ont rempli le questionnaire.")
     else:
         st.write(f"Aucune donnée disponible pour le {selected_date.strftime('%d-%m-%Y')}.")
+
+    # Filter data for "Quand ?" == "post-entrainement"
+    post_training_data = data[data['Quand ?'] == "post-entrainement"]
+    
+    # Sidebar selection for variable
+    selected_variable = st.sidebar.selectbox(
+        "Choisir une variable:", 
+        ["Humeur-Post", "Plaisir-Post", "RPE"]
+    )
+    
+    # Sidebar date range selection
+    date_min = post_training_data['Date'].min()
+    date_max = post_training_data['Date'].max()
+    selected_date_range = st.sidebar.date_input(
+        "Choisir une plage de dates:", 
+        [date_min, date_max], 
+        min_value=date_min, 
+        max_value=date_max
+    )
+    
+    # Ensure correct format for date selection
+    if isinstance(selected_date_range, tuple):
+        start_date, end_date = selected_date_range
+    else:
+        start_date, end_date = date_min, date_max  # Fallback in case of error
+    
+    # Filter data by the selected date range
+    filtered_data = post_training_data[
+        (post_training_data['Date'] >= pd.Timestamp(start_date)) & 
+        (post_training_data['Date'] <= pd.Timestamp(end_date))
+    ]
+    
+    # Convert selected variable to numeric if necessary
+    filtered_data[selected_variable] = pd.to_numeric(filtered_data[selected_variable], errors='coerce')
+    
+    # Interactive plot
+    if not filtered_data.empty:
+        fig = px.line(
+            filtered_data, 
+            x="Date", 
+            y=selected_variable, 
+            color="Nom",
+            markers=True, 
+            title=f"Évolution de {selected_variable}"
+        )
+    
+        # Customize layout
+        fig.update_layout(
+            xaxis_title="Date",
+            yaxis_title=selected_variable,
+            hovermode="closest"
+        )
+    
+        # Display interactive plot
+        st.plotly_chart(fig, use_container_width=True)
+    
+        # Display mean per player
+        mean_per_player = filtered_data.groupby("Nom")[selected_variable].mean().reset_index()
+        mean_per_player.columns = ["Nom", f"Moyenne {selected_variable}"]
+    
+        st.write(f"### Moyenne de {selected_variable} par joueur")
+        st.dataframe(mean_per_player, use_container_width=True)
+    
+    else:
+        st.write("Aucune donnée disponible pour la plage de dates sélectionnée.")
+    
 
 
 elif page == "Joueurs":
