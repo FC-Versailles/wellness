@@ -91,9 +91,6 @@ def color_gradient(value):
     return f"background-color: rgba({','.join(map(str, [int(c * 255) for c in cmap(norm_value)[:3]]))}, 0.6)"
 
 
-# Streamlit app
-st.title("FC Versailles - Santé & Wellness")
-
 # Add a button to refresh the data
 if st.button("Actualiser les données"):
     st.cache_data.clear()  # Clear the cache to fetch new data
