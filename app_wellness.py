@@ -136,7 +136,7 @@ if page == "Pre-entrainement":
         "Mbemba", "Ben Brahim", "Santini", "Kodjia", "Mendes", "M'bone", 
         "Chadet", "Diakhaby", "Altikulac", "Duku", "Mahop", 
         "Calvet", "Basque", "Tchato", "Baghdadi", "Renot", "Renaud", 
-        "Raux", "Traoré","Koffi","Sallard","Kouassi"
+        "Raux", "Traoré","Koffi","Sallard","Kouassi","Gaval"
     ]
 
     # Date selection
@@ -252,7 +252,7 @@ elif page == "Post-entrainement":
             "Mbemba", "Ben Brahim", "Santini", "Kodjia", "Mendes", "M'bone", 
             "Chadet", "Diakhaby", "Altikulac", "Duku", "Mahop", 
             "Calvet", "Basque", "Tchato", "Baghdadi", "Renot", "Renaud", 
-            "Raux", "Traoré","Koffi","Sallard","Kouassi"
+            "Raux", "Traoré","Koffi","Sallard","Kouassi","Gaval"
         ]
 
         players_filled = filtered_data['Nom'].dropna().unique()
@@ -426,8 +426,6 @@ elif page == "Joueurs":
     else:
         st.write(f"Aucune donnée disponible pour {selected_name}.")
         
-
-
         
 if page == "Medical":
     st.header("État de l'équipe")
