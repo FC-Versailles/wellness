@@ -337,9 +337,17 @@ elif page == "Post-entrainement":
 elif page == "Joueurs":
     st.header("Joueur")
     
-    # Sort names alphabetically
-    sorted_names = sorted(data['Nom'].dropna().unique())
-    selected_name = st.sidebar.selectbox("Choisir un nom:", options=sorted_names, index=0)
+    # Restrict selection to a predefined list of players
+    all_players = [
+        "Baghdadi", "Basque", "Ben Brahim", "Calvet", "Chadet", "Cisse", "Diouf",
+        "Fischer", "Gaval", "Kalai", "Koffi", "M'bone", "Mbemba", "Mendes",
+        "Moussadek", "Odzoumo", "Raux-Yao", "Renaud", "Renot", "Shelton",
+        "Santini", "Zemoura", "Tchato"
+    ]
+    
+    # Keep only players present in the data
+    available_players = sorted([p for p in all_players if p in data['Nom'].unique()])
+    selected_name = st.sidebar.selectbox("Choisir un nom:", options=available_players)
 
     # Filter data for the selected player
     data_filtered_by_name = data[data['Nom'] == selected_name]
