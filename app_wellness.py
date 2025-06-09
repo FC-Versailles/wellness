@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib.colors import LinearSegmentedColormap
 import plotly.express as px
+import plotly.graph_objects as go
 
 
 # Constants for Google Sheets
@@ -363,6 +364,56 @@ elif page == "Joueurs":
             return float(value)
         except (ValueError, SyntaxError, TypeError):
             return float('nan')
+        
+        # Nettoyage de la colonne RPE
+    data_filtered_by_name['RPE'] = pd.to_numeric(data_filtered_by_name['RPE'], errors='coerce')
+    rpe_data = data_filtered_by_name[['Date', 'RPE']].dropna().sort_values('Date')
+    
+    if not rpe_data.empty:
+        rpe_data['RPE_7j'] = rpe_data['RPE'].rolling(window=7, min_periods=1).mean()
+        rpe_data['RPE_28j'] = rpe_data['RPE'].rolling(window=28, min_periods=1).mean()
+    
+        fig_rpe = go.Figure()
+        
+        # Barres pour les RPE journaliers
+        fig_rpe.add_trace(go.Bar(
+            x=rpe_data['Date'],
+            y=rpe_data['RPE'],
+            name="RPE quotidien",
+            marker_color='rgba(55, 128, 191, 0.7)'
+        ))
+    
+        # Moyenne 7 jours
+        fig_rpe.add_trace(go.Scatter(
+            x=rpe_data['Date'],
+            y=rpe_data['RPE_7j'],
+            mode='lines+markers',
+            name='Moyenne 7 jours',
+            line=dict(color='orange')
+        ))
+    
+        # Moyenne 28 jours
+        fig_rpe.add_trace(go.Scatter(
+            x=rpe_data['Date'],
+            y=rpe_data['RPE_28j'],
+            mode='lines+markers',
+            name='Moyenne 28 jours',
+            line=dict(color='green')
+        ))
+    
+        fig_rpe.update_layout(
+            title=f"Suivi du RPE pour {selected_name}",
+            xaxis_title="Date",
+            yaxis_title="RPE",
+            barmode='overlay',
+            template='simple_white',
+            height=400
+        )
+        
+        st.plotly_chart(fig_rpe, use_container_width=True)
+    else:
+        st.info(f"Aucune donnée RPE disponible pour {selected_name}.")    
+        
 
     # Convert problematic columns
     for col in ['Sommeil', 'Fatigue', 'Courbature', 'Humeur']:
