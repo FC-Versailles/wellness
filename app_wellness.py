@@ -337,15 +337,18 @@ elif page == "Post-entrainement":
 elif page == "Joueurs":
     st.header("Joueur")
     
-    # Restrict selection to a predefined list of players
+    # Nettoyage des noms dans le dataframe
+    data['Nom'] = data['Nom'].str.strip().str.title()
+    
+    # Liste fixe des joueurs (normalisée aussi)
     all_players = [
         "Baghdadi", "Basque", "Ben Brahim", "Calvet", "Chadet", "Cisse", "Diouf",
-        "Fischer", "Gaval", "Kalai", "Koffi", "M'bone", "Mbemba", "Mendes",
+        "Fischer", "Gaval", "Kalai", "Koffi", "M'Bone", "Mbemba", "Mendes",
         "Moussadek", "Odzoumo", "Raux-Yao", "Renaud", "Renot", "Shelton",
         "Santini", "Zemoura", "Tchato"
     ]
     
-    # Keep only players present in the data
+    # Ne garder que ceux présents dans les données
     available_players = sorted([p for p in all_players if p in data['Nom'].unique()])
     selected_name = st.sidebar.selectbox("Choisir un nom:", options=available_players)
 
