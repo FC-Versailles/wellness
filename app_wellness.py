@@ -132,11 +132,11 @@ if page == "Pre-entrainement":
     
     # Define the full list of players
     all_players = [
-        "Hend", "Raux-Yao", "Moussadek", "Guirassy","El hriti","Odzoumo", 
-        "Mbemba", "Ben Brahim", "Santini", "Kodjia", "Mendes", "M'bone", 
-        "Chadet", "Diakhaby", "Altikulac", "Duku", "Mahop", 
-        "Calvet", "Basque", "Tchato", "Baghdadi", "Renot", "Renaud", 
-        "Raux", "Traoré","Koffi","Sallard","Kouassi","Gaval"
+        "Baghdadi","Basque","Ben Brahim","Calvet","Chadet","Cisse","Diouf",
+        "Fischer","Gaval", "Kalai","Koffi","M'bone",  "Mbemba","Mendes", 
+        "Moussadek", "Odzoumo", "Raux-Yao","Renaud","Renot",   "Shelton",
+        "Santini","Zemoura","Tchato"
+     
     ]
 
     # Date selection
@@ -248,11 +248,11 @@ elif page == "Post-entrainement":
 
         # Check for players who didn't fill the form
         all_players = [
-            "Hend", "Raux-Yao", "Moussadek", "Guirassy","El hriti","Odzoumo", 
-            "Mbemba", "Ben Brahim", "Santini", "Kodjia", "Mendes", "M'bone", 
-            "Chadet", "Diakhaby", "Altikulac", "Duku", "Mahop", 
-            "Calvet", "Basque", "Tchato", "Baghdadi", "Renot", "Renaud", 
-            "Raux", "Traoré","Koffi","Sallard","Kouassi","Gaval"
+            "Baghdadi","Basque","Ben Brahim","Calvet","Chadet","Cisse","Diouf",
+            "Fischer","Gaval", "Kalai","Koffi","M'bone",  "Mbemba","Mendes", 
+            "Moussadek", "Odzoumo", "Raux-Yao","Renaud","Renot",   "Shelton",
+            "Santini","Zemoura","Tchato"
+     
         ]
 
         players_filled = filtered_data['Nom'].dropna().unique()
