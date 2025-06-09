@@ -414,79 +414,94 @@ elif page == "Joueurs":
     else:
         st.info(f"Aucune donnée RPE disponible pour {selected_name}.")    
         
-
-    # Convert problematic columns
+  
+    
+    # Nettoyage des colonnes
     for col in ['Sommeil', 'Fatigue', 'Courbature', 'Humeur']:
         data_filtered_by_name[col] = data_filtered_by_name[col].apply(extract_first_numeric)
-
-    # Drop rows with NaN
+    
     data_filtered_by_name = data_filtered_by_name.dropna(subset=['Sommeil', 'Fatigue', 'Courbature', 'Humeur'])
-
-    # Calculate means
-    mean_values = data_filtered_by_name[['Sommeil', 'Fatigue', 'Courbature', 'Humeur']].mean()
-
-
-    # Calculate metrics
-    if not data_filtered_by_name.empty:
-        # Value of the most recent date
-        latest_date = data_filtered_by_name['Date'].max()
-        latest_values = data_filtered_by_name[data_filtered_by_name['Date'] == latest_date]
-
-        # Mean of all available data
-        mean_values = data_filtered_by_name[['Sommeil', 'Fatigue', 'Courbature', 'Humeur']].mean()
-
-        # Mean of the last 3 days
-        last_three_days = data_filtered_by_name.tail(3)
-        last_three_mean = last_three_days[['Sommeil', 'Fatigue', 'Courbature', 'Humeur']].mean()
-
-        # Create a summary table
-        summary_table = pd.DataFrame({
-            'Metric': ['Valeur du jour', 'Moyenne', 'Moyenne des 3 derniers jours'],
-            'Sommeil': [
-                latest_values['Sommeil'].values[0] if not latest_values.empty else "N/A",
-                mean_values['Sommeil'],
-                last_three_mean['Sommeil']
-            ],
-            'Fatigue': [
-                latest_values['Fatigue'].values[0] if not latest_values.empty else "N/A",
-                mean_values['Fatigue'],
-                last_three_mean['Fatigue']
-            ],
-            'Courbature': [
-                latest_values['Courbature'].values[0] if not latest_values.empty else "N/A",
-                mean_values['Courbature'],
-                last_three_mean['Courbature']
-            ],
-            'Humeur': [
-                latest_values['Humeur'].values[0] if not latest_values.empty else "N/A",
-                mean_values['Humeur'],
-                last_three_mean['Humeur']
-            ]
-        })
-
-        # Display the summary table
-        st.write(f"### Résumé pour {selected_name}")
-        st.table(summary_table)
-
-        # Graphique interactif
-        st.write("### Métriques de Santé")
-        variable = st.selectbox("Choisir la variable:", ["Sommeil", "Fatigue", "Courbature", "Humeur"])
-
-        fig, ax = plt.subplots()
-        ax.plot(data_filtered_by_name['Date'], data_filtered_by_name[variable], marker='o', linestyle='-')
-        ax.set_title(f"{variable}")
-        ax.set_xlabel("Date")
-        ax.set_ylabel(variable)
-        ax.grid(True)
-        # Supprimer les axes supérieurs et droits
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        # Définir la plage de l'axe Y
-        ax.set_ylim(1, 7)
-        plt.xticks(rotation=45)
-        st.pyplot(fig)
+    data_filtered_by_name = data_filtered_by_name.sort_values("Date")
+    
+    # Score bien-être personnalisé
+    def compute_score(df):
+        return (df['Sommeil'] + (7 - df['Fatigue']) + (7 - df['Courbature']) + df['Humeur']) / 4
+    
+    data_filtered_by_name['Score Bien-être'] = data_filtered_by_name.apply(compute_score, axis=1)
+    
+    # Moyennes glissantes
+    data_filtered_by_name['Score_3j'] = data_filtered_by_name['Score Bien-être'].rolling(window=3, min_periods=1).mean()
+    data_filtered_by_name['Score_7j'] = data_filtered_by_name['Score Bien-être'].rolling(window=7, min_periods=1).mean()
+    
+    # Détection de tendance
+    latest_score = data_filtered_by_name.iloc[-1]['Score Bien-être']
+    prev_score = data_filtered_by_name.iloc[-4:-1]['Score Bien-être'].mean()
+    
+    if latest_score > prev_score:
+        trend = "📈 Le bien-être du joueur est en amélioration ces derniers jours."
+    elif latest_score < prev_score:
+        trend = "📉 Le bien-être du joueur semble se dégrader récemment."
     else:
-        st.write(f"Aucune donnée disponible pour {selected_name}.")
+        trend = "⏸️ Le bien-être du joueur est stable."
+    
+    # GRAPHIQUE PLOTLY
+    fig = go.Figure()
+    
+    fig.add_trace(go.Scatter(
+        x=data_filtered_by_name['Date'],
+        y=data_filtered_by_name['Sommeil'],
+        mode='lines+markers',
+        name='Sommeil',
+        line=dict(color='blue')
+    ))
+    
+    fig.add_trace(go.Scatter(
+        x=data_filtered_by_name['Date'],
+        y=7 - data_filtered_by_name['Fatigue'],  # inversé pour cohérence visuelle
+        mode='lines+markers',
+        name='(7 - Fatigue)',
+        line=dict(color='red')
+    ))
+    
+    fig.add_trace(go.Scatter(
+        x=data_filtered_by_name['Date'],
+        y=7 - data_filtered_by_name['Courbature'],  # inversé pour cohérence visuelle
+        mode='lines+markers',
+        name='(7 - Courbature)',
+        line=dict(color='orange')
+    ))
+    
+    fig.add_trace(go.Scatter(
+        x=data_filtered_by_name['Date'],
+        y=data_filtered_by_name['Humeur'],
+        mode='lines+markers',
+        name='Humeur',
+        line=dict(color='green')
+    ))
+    
+    fig.add_trace(go.Scatter(
+        x=data_filtered_by_name['Date'],
+        y=data_filtered_by_name['Score Bien-être'],
+        mode='lines+markers',
+        name='Score Bien-être',
+        line=dict(color='purple', width=4, dash='dash')
+    ))
+    
+    # Layout
+    fig.update_layout(
+        title=f"Métriques de bien-être pour {selected_name}",
+        xaxis_title="Date",
+        yaxis_title="Échelle 1-7",
+        hovermode="x unified",
+        template="simple_white",
+        legend=dict(orientation="h", y=-0.3),
+        height=500
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    st.markdown(f"**{trend}**")
+    
+       
         
         
 if page == "Medical":
